@@ -2,6 +2,15 @@ Write what pins, clocks, peripherals, etc. you are using.
 
 David:
 
+    Timers:
+        TIM17 and its interrupt.
+    Pins:
+        PB: 2, 3, 5, 8, 11, 14. 
+
+    Notes:
+        If at any point you want to recreate the TFT behavior on your own board, 
+        follow the instructions here: https://github.com/ece362-purdue/labs/blob/main/lab7-usart/TFT_SD.md
+
 Eduard:
 
 Jen: 
