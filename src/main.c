@@ -362,7 +362,10 @@ void TIM17_IRQHandler()
         update_barrier_pos(BARRIER_X0, barrier_y);
     }
 }
-
+void init_spi2(void);
+void spi2_setup_dma(void);
+void spi2_enable_dma(void);
+void game(void);
 int main(void)
 {
 
@@ -371,6 +374,10 @@ int main(void)
     LCD_DrawPicture(0, 0, &background);
     init_bird();
     init_tim17();
+    init_spi2();
+    spi2_setup_dma();
+    spi2_enable_dma();
+
     game();
     while (1)
         asm("wfi");

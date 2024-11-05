@@ -13,6 +13,8 @@ David:
 
 Eduard:
 
-Jen: 
-
+Jen:
+    Spi 2 
+    Pins:
+        PB: 12, 13, 15
 Luke:
