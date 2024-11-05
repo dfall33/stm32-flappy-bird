@@ -9,9 +9,10 @@
 #include "stm32f0xx.h"
 
 #include "lcd.h"
+#include "utils.h"
 
 void internal_clock();
-void nano_wait(unsigned int t);
+// void nano_wait(unsigned int t);
 
 /* Create a pointer to a picture object with an internal pix2 array holding pixel data */
 #define TempPicturePtr(name, width, height) Picture name[(width) * (height) / 6 + 2] = {{width, height, 2}}
@@ -348,7 +349,6 @@ void TIM17_IRQHandler()
         // reset the screen
         LCD_DrawPicture(0, 0, &background);
         barrier_y = BARRIER_Y0;
-
         // get new gap
         int y_gap = rand() % 80 + 100;
 
@@ -371,7 +371,7 @@ int main(void)
     LCD_DrawPicture(0, 0, &background);
     init_bird();
     init_tim17();
-
+    game();
     while (1)
         asm("wfi");
 
