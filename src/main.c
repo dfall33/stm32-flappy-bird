@@ -298,52 +298,54 @@ void update_barrier_pos(int x, int y)
  * @return void
  */
 void init_tim2()
-{   
-    //Enable clock to TIM2
+{
+    // Enable clock to TIM2
     RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
 
-    //Set prescaler value for interrupt every half second (interval can be adjusted)
-    TIM2->PSC = 3000 - 1; 
+    // Set prescaler value for interrupt every half second (interval can be adjusted)
+    TIM2->PSC = 3000 - 1;
 
-    //Set refresh value for interrupt every half second
-    TIM2->ARR = 8000 - 1; 
+    // Set refresh value for interrupt every half second
+    TIM2->ARR = 8000 - 1;
 
-    //Enable the update interrupt 
+    // Enable the update interrupt
     TIM2->DIER |= TIM_DIER_UIE;
 
-    //Enable Timer
+    // Enable Timer
     TIM2->CR1 |= TIM_CR1_CEN;
 
-    //Enable Interrupt 
+    // Enable Interrupt
     NVIC_EnableIRQ(TIM2_IRQn);
 }
 
 void TIM2_IRQHandler()
 {
-    //acknowledge the interrupt 
+    // acknowledge the interrupt
     TIM2->SR &= ~TIM_SR_UIF;
 
-    //Check if button pushed
-    if (GPIOA->IDR & (1 << 0)) //PA0
+    // Check if button pushed
+    if (GPIOA->IDR & (1 << 0)) // PA0
     {
-        //Yes button is pushed, set acceleration high (arbitrary value, can be changed)
+        // Yes button is pushed, set acceleration high (arbitrary value, can be changed)
         bird_a = 3;
     }
-    
+
     else
     {
-        //No button is not pushed, set acceleration low (arbitrary value, can be changed)
+        // No button is not pushed, set acceleration low (arbitrary value, can be changed)
         bird_a = -3;
     }
 
-    //Update velocity based on bird acceleration
+    // Update velocity based on bird acceleration
     bird_v += bird_a;
 
-    //Set velocity bounds (not sure if this is neccessary, or if values are appropriate)
-    if (bird_v > 18){
+    // Set velocity bounds (not sure if this is neccessary, or if values are appropriate)
+    if (bird_v > 18)
+    {
         bird_v = 18;
     }
-    else if (bird_v < -18){
+    else if (bird_v < -18)
+    {
         bird_v = -18;
     }
 }
@@ -385,12 +387,14 @@ void TIM17_IRQHandler()
     // move the bird
     bird_x += bird_v;
 
-    if (bird_x < BIRD_MIN_X){
-        //Bird crashes, game end
-        //PLACE HOLDER
+    if (bird_x < BIRD_MIN_X)
+    {
+        // Bird crashes, game end
+        // PLACE HOLDER
     }
 
-    if (bird_x > BIRD_MAX_X){
+    if (bird_x > BIRD_MAX_X)
+    {
         bird_x = BIRD_MAX_X;
     }
 
