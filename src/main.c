@@ -49,6 +49,7 @@ int bird_x = BIRD_X0;
 int bird_y = BIRD_Y0;
 int barrier_v = BARRIER_V0;
 int bird_v = BIRD_V0;
+int bird_a = 0;
 
 /**
  * @brief Initialize the SPI1 peripheral to run at 12MHz.
@@ -292,6 +293,61 @@ void update_barrier_pos(int x, int y)
 }
 
 /**
+ * @brief Initialize timer 2 and enable it to generate interrupts.
+ * @return void
+ */
+void init_tim2()
+{   
+    //Enable clock to TIM2
+    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+
+    //Set prescaler value for interrupt every half second (interval can be adjusted)
+    TIM2->PSC = 3000 - 1; 
+
+    //Set refresh value for interrupt every half second
+    TIM2->ARR = 8000 - 1; 
+
+    //Enable the update interrupt 
+    TIM2->DIER |= TIM_DIER_UIE;
+
+    //Enable Timer
+    TIM2->CR1 |= TIM_CR1_CEN;
+
+    //Enable Interrupt 
+    NVIC_EnableIRQ(TIM2_IRQn);
+}
+
+void TIM2_IRQHandler()
+{
+    //acknowledge the interrupt 
+    TIM2->SR &= ~TIM_SR_UIF;
+
+    //Check if button pushed
+    if (GPIOA->IDR & (1 << 0)) //PA0
+    {
+        //Yes button is pushed, set acceleration high (arbitrary value, can be changed)
+        bird_a = 3;
+    }
+    
+    else
+    {
+        //No button is not pushed, set acceleration low (arbitrary value, can be changed)
+        bird_a = -3;
+    }
+
+    //Update velocity based on bird acceleration
+    bird_v += bird_a;
+
+    //Set velocity bounds (not sure if this is neccessary, or if values are appropriate)
+    if (bird_v > 18){
+        bird_v = 18;
+    }
+    else if (bird_v < -18){
+        bird_v = -18;
+    }
+}
+
+/**
  * @brief Initialize timer 17 and enable it to generate interrupts.
  * @return void
  */
@@ -328,15 +384,15 @@ void TIM17_IRQHandler()
     // move the bird
     bird_x += bird_v;
 
-    /* Placeholder bird physics, oscillates up and down. Feel free to change. */
-    if (bird_x > BIRD_MAX_X)
-    {
-        bird_v = -3;
+    if (bird_x < BIRD_MIN_X){
+        //Bird crashes, game end
+        //PLACE HOLDER
     }
-    else if (bird_x < BIRD_MIN_X)
-    {
-        bird_v = 3;
+
+    if (bird_x > BIRD_MAX_X){
+        bird_x = BIRD_MAX_X;
     }
+
     update_bird_pos(bird_x, bird_y);
     /* End placeholder bird physics */
 

@@ -18,3 +18,11 @@ Jen:
     Pins:
         PB: 12, 13, 15
 Luke:
+    
+    Bird Physics:
+        Timers:
+            TIM2 and its interrupt (updated veloctiy and acceleration)
+            TIM17 to update its position 
+        
+        Pins: 
+            PA: 0 (onboard push button)
