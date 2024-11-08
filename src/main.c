@@ -10,6 +10,7 @@
 
 #include "lcd.h"
 #include "utils.h"
+#include "eeprom.h"
 
 void internal_clock();
 // void nano_wait(unsigned int t);
@@ -370,6 +371,7 @@ int main(void)
 {
 
     internal_clock();
+    eeprom_init();
     LCD_Setup();
     LCD_DrawPicture(0, 0, &background);
     init_bird();
