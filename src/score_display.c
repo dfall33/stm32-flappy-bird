@@ -263,7 +263,7 @@ void spi2_enable_dma(void)
 
 extern uint16_t display[34];
 
-int score = 0;
+// int score = 0;
 void init_tim17(void);
 void init_spi2(void);
 void spi2_setup_dma(void);
@@ -272,9 +272,9 @@ void spi2_enable_dma(void);
 void game(void)
 {
     print("Score99");
-    init_spi2();
-    spi2_setup_dma();
-    spi2_enable_dma();
+    // init_spi2();
+    // spi2_setup_dma();
+    // spi2_enable_dma();
     return;
     // init_tim17(); // start timer
     // get_keypress(); // Wait for key to start
