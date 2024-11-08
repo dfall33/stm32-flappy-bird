@@ -29,7 +29,7 @@ extern const Picture barrier;    // load the barrier from barrier.c
 #define BARRIER_WIDTH 220            // barrier width
 #define BARRIER_HEIGHT 20            // barrier height
 #define GAP_HEIGHT 20                // gap height
-#define BIRD_V0 3                    // bird initial velocity
+#define BIRD_V0 0                    // bird initial velocity
 #define BARRIER_V0 2                 // barrier initial velocity
 #define BIRD_X0 100                  // bird initial x position
 #define BIRD_Y0 140                  // bird initial y position
@@ -37,7 +37,7 @@ extern const Picture barrier;    // load the barrier from barrier.c
 #define BARRIER_X0 (240 - (230 / 2)) // barrier initial x position
 #define BARRIER_Y_RESET 100          // barrier min y position before new barrier
 #define BIRD_MIN_X 50                // bird min x position
-#define BIRD_MAX_X 150               // bird max x position
+#define BIRD_MAX_X 200               // bird max x position
 
 /* Get picture pointers for bird and barrier, include padding for translation */
 TempPicturePtr(bird_ptr, BIRD_WIDTH + 2 * PADDING, BIRD_HEIGHT + 2 * PADDING);
@@ -50,7 +50,7 @@ int bird_x = BIRD_X0;
 int bird_y = BIRD_Y0;
 int barrier_v = BARRIER_V0;
 int bird_v = BIRD_V0;
-int bird_a = 0;
+int bird_a = -3;
 
 /**
  * @brief Initialize the SPI1 peripheral to run at 12MHz.
@@ -249,7 +249,7 @@ void init_bird()
     for (int i = 0; i < 29 * 29; i++)
         bird_ptr->pix2[i] = 0xffff;
 
-    pic_overlay(bird_ptr, 5, 5, &bird, 0xffff);
+    pic_overlay(bird_ptr, PADDING, PADDING, &bird, 0xffff);
 
     update_bird_pos(BIRD_X0, BIRD_Y0);
 }
@@ -266,7 +266,7 @@ void create_barrier(int y_gap)
     for (int i = 0; i < total_pixels; i++)
         barrier_ptr->pix2[i] = 0xffff;
 
-    pic_overlay(barrier_ptr, 5, 5, &barrier, 0xffff);
+    pic_overlay(barrier_ptr, PADDING, PADDING, &barrier, 0xffff);
 
     // overwrite the barrier obj for a gap
     for (int i = 0; i < total_pixels; i++)
@@ -294,57 +294,65 @@ void update_barrier_pos(int x, int y)
 }
 
 /**
+ * @brief Initialize GPIOA for user input.
+ * @return void
+ */
+void init_gpioa()
+{
+    // Enable clock to GPIOA
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+
+    // Set PA0 as input
+    GPIOA->MODER &= ~GPIO_MODER_MODER0;
+
+    // Set PA0 as pull-down
+    GPIOA->PUPDR &= ~GPIO_PUPDR_PUPDR0;
+    GPIOA->PUPDR |= GPIO_PUPDR_PUPDR0_1;
+}
+
+/**
  * @brief Initialize timer 2 and enable it to generate interrupts.
  * @return void
  */
 void init_tim2()
-{   
-    //Enable clock to TIM2
+{
+    // Enable clock to TIM2
     RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
 
-    //Set prescaler value for interrupt every half second (interval can be adjusted)
-    TIM2->PSC = 3000 - 1; 
+    // Set prescaler value for interrupt every half second (interval can be adjusted)
+    TIM2->PSC = 3000 - 1;
 
-    //Set refresh value for interrupt every half second
-    TIM2->ARR = 8000 - 1; 
+    // Set refresh value for interrupt every half second
+    TIM2->ARR = 2000 - 1;
 
-    //Enable the update interrupt 
+    // Enable the update interrupt
     TIM2->DIER |= TIM_DIER_UIE;
 
-    //Enable Timer
+    // Enable Timer
     TIM2->CR1 |= TIM_CR1_CEN;
 
-    //Enable Interrupt 
+    // Enable Interrupt
     NVIC_EnableIRQ(TIM2_IRQn);
 }
 
 void TIM2_IRQHandler()
 {
-    //acknowledge the interrupt 
+    // acknowledge the interrupt
     TIM2->SR &= ~TIM_SR_UIF;
 
-    //Check if button pushed
-    if (GPIOA->IDR & (1 << 0)) //PA0
-    {
-        //Yes button is pushed, set acceleration high (arbitrary value, can be changed)
-        bird_a = 3;
-    }
-    
-    else
-    {
-        //No button is not pushed, set acceleration low (arbitrary value, can be changed)
-        bird_a = -3;
-    }
-
-    //Update velocity based on bird acceleration
     bird_v += bird_a;
 
-    //Set velocity bounds (not sure if this is neccessary, or if values are appropriate)
-    if (bird_v > 18){
-        bird_v = 18;
+    // max velocity is padding (anything more than padding ruins graphics)
+    if (bird_v < -1 * PADDING)
+    {
+        bird_v = -1 * PADDING;
     }
-    else if (bird_v < -18){
-        bird_v = -18;
+    // Check if button pushed
+    if (GPIOA->IDR & 1)
+    {
+
+        // Button is pressed, give velocity boost
+        bird_v = 5;
     }
 }
 
@@ -385,12 +393,16 @@ void TIM17_IRQHandler()
     // move the bird
     bird_x += bird_v;
 
-    if (bird_x < BIRD_MIN_X){
-        //Bird crashes, game end
-        //PLACE HOLDER
+    if (bird_x < BIRD_MIN_X)
+    {
+        // Bird crashes, game end
+        // PLACE HOLDER
+
+        // you hit the ground : game over
     }
 
-    if (bird_x > BIRD_MAX_X){
+    if (bird_x > BIRD_MAX_X)
+    {
         bird_x = BIRD_MAX_X;
     }
 
@@ -422,16 +434,23 @@ void TIM17_IRQHandler()
 void init_spi2(void);
 void spi2_setup_dma(void);
 void spi2_enable_dma(void);
-void game(void);
+
 int main(void)
 {
 
+    // HSI 48MHz
     internal_clock();
+
     eeprom_init();
-    LCD_Setup();
-    LCD_DrawPicture(0, 0, &background);
-    init_bird();
-    init_tim17();
+
+    LCD_Setup();                        // enable TFT display
+    LCD_DrawPicture(0, 0, &background); // set background
+    init_bird();                        // set bird
+    init_tim17();                       // setup screen refresh
+
+    init_gpioa(); // enable user input via PA0
+    init_tim2();  // bird velocity update and user input
+
     init_spi2();
     spi2_setup_dma();
     spi2_enable_dma();
