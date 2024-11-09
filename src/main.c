@@ -11,9 +11,7 @@
 #include "lcd.h"
 #include "utils.h"
 #include "eeprom.h"
-
-void internal_clock();
-// void nano_wait(unsigned int t);
+#include "score_display.h"
 
 /* Create a pointer to a picture object with an internal pix2 array holding pixel data */
 #define TempPicturePtr(name, width, height) Picture name[(width) * (height) / 6 + 2] = {{width, height, 2}}
@@ -399,10 +397,7 @@ void init_tim17()
     // enable the timer
     TIM17->CR1 |= TIM_CR1_CEN;
 
-    // enable the interrupt in the NVIC
-
-    // DON'T initialize the interrupt here, because we don't want game graphics updating until game is started
-    // NVIC_EnableIRQ(TIM17_IRQn);
+    // DO NOT ENABLE THE INTERRUPT here, because we don't want game graphics updating until game is started
 }
 
 /**
@@ -420,11 +415,6 @@ void TIM17_IRQHandler()
     // check if bird hit ground
     if (bird_x < BIRD_MIN_X)
     {
-        // Bird crashes, game end
-        // PLACE HOLDER
-
-        // you hit the ground : game over
-
         game_over = TRUE;
         return;
     }
@@ -432,7 +422,6 @@ void TIM17_IRQHandler()
     // check if bird is crossing a barrier
     if (bird_y > barrier_y - (BARRIER_HEIGHT >> 1) && bird_y < barrier_y + (BARRIER_HEIGHT >> 1))
     {
-
         in_barrier = TRUE;
 
         // bird is in barrier, check if not in gap (crashing)
@@ -520,41 +509,26 @@ void reset_params()
 
 void play()
 {
-
-    print("PressPB2");
-
+    // print("PressPB2");
     init_spi2();
     spi2_setup_dma();
     spi2_enable_dma();
-
     init_tim17();
-
-    // run setup sequence for game
-    // bird_a = 0;
-    // bird_v = 0;
-    // create_barrier(y_gap);
-    // NVIC_EnableIRQ(TIM17_IRQn);
-    // while (1)
-    // {
-    //     if (score)
-    //         break;
-    // }
-    // NVIC_DisableIRQ(TIM17_IRQn);
-    // reset_params();
 
     // play game forever
     for (;;)
     {
 
         // reset the screen
-        LCD_DrawPicture(0, 0, &background); // set background
-        init_bird();
+        LCD_DrawPicture(0, 0, &background); // redraw background
+        init_bird();                        // reset bird position
+        create_barrier(70);                 // first barrier needs to be created outside of the interrupt handler
 
-        // eeprom_get_high_score(&high_score);
-        // char buf[9];
-        // snprintf(buf, 9, "High %lu", (unsigned long)high_score);
-        // print(buf);
-        create_barrier(70);
+        // get and display high score
+        eeprom_get_high_score(&high_score);
+        char buf[9];
+        snprintf(buf, 9, "High% 3d", (int)high_score);
+        print(buf);
 
         wait_for_start(); // wait for user to press PB2 to start
 
@@ -572,11 +546,11 @@ void play()
                 // stop updating display: disable tim17 interrupt
                 NVIC_DisableIRQ(TIM17_IRQn);
 
-                // // update high score
-                // if (score > high_score)
-                // {
-                //     eeprom_save_high_score(score);
-                // }
+                // update high score
+                if (score > high_score)
+                {
+                    eeprom_save_high_score(score);
+                }
                 break;
             }
         }
@@ -586,33 +560,12 @@ void play()
 int main(void)
 {
 
-    // HSI 48MHz
-    internal_clock();
-
-    eeprom_init();
-    init_tim17(); // setup screen refresh
-
-    init_input(); // enable user input via PA0, PB2
-    init_tim16(); // bird velocity update and user input
-
-    LCD_Setup(); // enable TFT display
-
-    // eeprom_get_high_score(&high_score);
-
-    play();
-
-    // LCD_DrawPicture(0, 0, &background); // set background
-    // init_bird();                        // set bird
-
-    // init_spi2();
-    // spi2_setup_dma();
-    // spi2_enable_dma();
-    // game();
-    // print("Hello123");
-
-    // init_gpioa(); // enable user input via PA0
-    // while (1)
-    //     asm("wfi");
-
+    internal_clock(); // HSI to 48MHz
+    eeprom_init();    // initialize eeprom
+    init_tim17();     // setup screen refresh
+    init_input();     // enable user input via PA0, PB2
+    init_tim16();     // bird velocity update and user input
+    LCD_Setup();      // enable TFT display
+    play();           // play the game forever
     return 0;
 }
